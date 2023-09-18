@@ -68,22 +68,20 @@ content_plaatsen <- function(data, template, omschrijving, indicator, groepering
 
 # 4. Rapportage maken -----------------------------------------------------
 
-# Template laden
-template <- read_pptx('2. Template.pptx')
+# Functie aanmaken om de rapportage te maken. 
+rapportage_maken <- function(template, configuratie, data, rapport) {
+  
+  template <- read_pptx(template)
+  pwalk(.l = configuratie, .f = content_plaatsen, data = data, template = template)
+  print(template, rapport)
+  
+}
 
-# Rapportage maken, waarbij de functie content_plaatsen() wordt toegepast op
-# de configuratie.
-pwalk(.l = configuratie, .f = content_plaatsen, data = data, template = template)
+# 5. Rapportage maken via functie -----------------------------------------
 
-# Rapportage opslaan als .pptx
-print(template, 'Rapportage.pptx')
+rapportage_maken('2. Template.pptx',configuratie,data,'Rapportage_GemeenteB.pptx')
 
-# Alle stappen onder stap 4 moeten samengevoegd worden tot 1 rapportage functie.
-# Deze functie kan vervolgens worden toegepast om een x aantal rapportages aan te
-# maken (bijvoorbeeld voor scholen of gemeenten).
-
-
-# 5. Handmatig template vullen --------------------------------------------
+# Handmatig template vullen -----------------------------------------------
 
 # Onderstaande code kan gebruikt worden om handmatig een rapportage te vullen
 # zodat je kan oefenen met deze manier van Powerpoints aanmaken
