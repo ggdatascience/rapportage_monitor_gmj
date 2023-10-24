@@ -27,21 +27,21 @@ data <- data.frame(GELUK = sample(x = c(NA, 0, 1), size = 10000, replace = T, pr
          opl_vmbohavo = ifelse(OPLEIDING == 3, 0, 1),
          opl_havovwo = ifelse(OPLEIDING == 1, 0, 1),
          opl_vwo = ifelse(OPLEIDING == 3, 1, 0),
-         opl_totaal = 1)
+         opl_totaal = 1,
+         RAPPORT = to_character(SCHOOL))
 
 
 # 2. Excelbestand met configuratie laden ----------------------------------
-rapporten <- readxl::read_xlsx("1. Configuratie Figuren.xlsx", sheet = 'Rapportconfiguratie')
-configuratie <- readxl::read_xlsx("1. Configuratie Figuren.xlsx", sheet = 'Slideconfiguratie 1')
-
+rapportconfiguratie <- readxl::read_xlsx("1. Configuratie.xlsx", sheet = 'Rapportconfiguratie')
+slideconfiguratie <- readxl::read_xlsx("1. Configuratie.xlsx", sheet = 'Slideconfiguratie 1') %>%
+  filter(werkt == 1) %>%
+  select(-vraag, -werkt)
 
 # 3. Grafiekinstellingen en opmaak ----------------------------------------
 
 kleuren <- c('#e8525f', '#009898')
 
-kleuren %>% set_names('KLAS 2', 'KLAS 4')
-
-val_labels(data$KLAS) %>% names()
+# kleuren %>% set_names('KLAS 2', 'KLAS 4')
 
 lettertype <- "TT Arial"
 
@@ -74,9 +74,10 @@ grafiekstijl <- function(x, grafiektitel = NULL, labelpositie = 'outEnd', labelk
 
 # 4. Functie maken om cijfers te berekenen --------------------------------
 
-bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
+bereken_cijfers <- function(data, rapportnaam, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
   
   data %>%
+    filter(RAPPORT == rapportnaam) %>%
     select(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA))) %>%
     group_by(across(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA)))) %>%
     tally() %>%
@@ -93,18 +94,19 @@ bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA,
   
 }
 
-bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
-bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
-bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+# Testen van bereken_cijfers() functie
+# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig')
+# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
+# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
 
 
 # 5. Functies maken om content te genereren -------------------------------
 
 # functie voor losse cijfers
-type_percentage <- function(data, indicator, format = 'percentage', Nvar = 30, Ncel = 30) {
+type_percentage <- function(data, rapportnaam, indicator, format = 'percentage', Nvar = 30, Ncel = 30) {
   
   data %>%
-    bereken_cijfers(indicator = indicator, Nvar = Nvar, Ncel = Ncel) %>%
+    bereken_cijfers(rapportnaam = rapportnaam, indicator = indicator, Nvar = Nvar, Ncel = Ncel) %>%
     mutate(., val = round(val*100)) %>%
     select(val) %>%
     unlist() %>%
@@ -114,13 +116,12 @@ type_percentage <- function(data, indicator, format = 'percentage', Nvar = 30, N
       else if(format == 'getal') .}
 }
 
-type_percentage(data, 'GELUK',)
 
 # functie voor staafgrafiek
-type_staafgrafiek <- function(data, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
+type_staafgrafiek <- function(data, rapportnaam, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
   
   data %>%
-    bereken_cijfers(indicator = indicator, omschrijving = omschrijving, groepering = groepering, uitsplitsing = uitsplitsing, Nvar = Nvar, Ncel = Ncel) %>%
+    bereken_cijfers(indicator = indicator, rapportnaam = rapportnaam, omschrijving = omschrijving, groepering = groepering, uitsplitsing = uitsplitsing, Nvar = Nvar, Ncel = Ncel) %>%
     rename(var = 1, groep = 2, uitsplitsing = 3) %>%
     ms_barchart(x = 'uitsplitsing', y = 'val', group = 'groep') %>%
     chart_data_fill(kleuren %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
@@ -129,54 +130,44 @@ type_staafgrafiek <- function(data, indicator, omschrijving = NA, groepering = N
 
 }
 
-?ms_barchart
-
-
-type_staafgrafiek(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS') %>%
-  print(preview = T)
-
-
-cijfers %>%
-  {if(stapel) rename(., groep = 1) else .} %>%
-  {if(gr | geen) mutate(., var = 'Totaal') else .} %>%
-  ms_barchart(., 
-              x = {if((uit | uitgr) | (stapel & uit)) uitsplitsing else if(gr | geen | stapel) 'var'}, 
-              y = 'val', 
-              group = {if(stapel) 'groep' else if(uitgr | gr) groep else if(uit | geen) NULL}) %>%
-  {if(stapel) as_bar_stack(., dir = "horizontal") else .} %>%
-  chart_data_fill(grafiekkleuren) %>%
-  set_theme(bartheme) %>%
-  chart_theme(legend_position = {if(uitgr | gr | stapel) 'b' else if(uit | geen) 'n'}) %>%
-  grafiekstijl(grafiektitel = configuratie$omschrijving[j],
-               labelpositie = {if(stapel) 'ctr' else 'outEnd'}, 
-               labelkleur = {if(stapel) 'white' else 'black'})
+# Testen van type_grafiek() functie 
+# type_staafgrafiek(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Schoolbeleving', uitsplitsing = 'GESLACHT', groepering = 'KLAS') %>%
+#   print(preview = T)
 
 
 # 6. Functies aanmaken om content te genereren en te plaatsen -------------
 
 # Functie aanmaken die op basis van de kolom 'type' uit de configuratie content genereert.
-content_genereren <- function(data, omschrijving, indicator, groepering, type) {
+content_genereren <- function(data, rapportnaam, omschrijving, indicator, uitsplitsing, groepering, vergelijking, type) {
   
-  if(type == 'percentage') {
   
-    type_percentage()
+  if(type == 'rapportnaam') {
+  
+    rapportnaam
       
+  } else if(type == 'percentage') {
+    
+    type_percentage(data = data, rapportnaam = rapportnaam, indicator = 'GELUK')
+  
   } else if(type == 'staafgrafiek') {
     
-    type_staafgrafiek()
-  
+    type_staafgrafiek(data = data, rapportnaam = rapportnaam, indicator = 'GELUK', 
+                      omschrijving = omschrijving, groepering = 'KLAS', uitsplitsing = 'GESLACHT')
+    
   }
   
-}  
+}
 
-content_genereren(data = data, omschrijving = 'bla', indicator = 'GELUK', groepering = 'GESLACHT', type = 'percentage')
+# Testen van content_generen() functie
+# content_genereren(data = data, rapportnaam = 'School 2', omschrijving = 'bla', indicator = 'GELUK', groepering = 'GESLACHT', type = 'percentage')
 
 # Functie aanmaken om de content te plaatsen. Eerst wordt de content gegenereert met de 
 # content_genereren() functie. Daarna wordt de content op basis van de configuratie
 # op de juiste slide en de juiste aanduiding geplaatst.
-content_plaatsen <- function(data, template, omschrijving, indicator, groepering, type, index, label) {
+content_plaatsen <- function(data, template, rapportnaam, omschrijving, indicator, uitsplitsing, groepering, vergelijking, type, index, label) {
   
-  value <- content_genereren(data = data, omschrijving = omschrijving, indicator = indicator, groepering = groepering, type = type)
+  value <- content_genereren(data = data, rapportnaam = rapportnaam, omschrijving = omschrijving, indicator = indicator, uitsplitsing = uitsplitsing,
+                             groepering = groepering, vergelijking = vergelijking, type = type)
   
   on_slide(template, index = index) %>%
     ph_with(value = value, location = ph_location_label(ph_label = label))
@@ -187,15 +178,24 @@ content_plaatsen <- function(data, template, omschrijving, indicator, groepering
 # 7. Rapportage maken -----------------------------------------------------
 
 # Functie aanmaken om de rapportage te maken. 
-rapportage_maken <- function(template, configuratie, data, rapport) {
+rapportage_maken <- function(template, slideconfiguratie, data, rapportnaam) {
   
   template <- read_pptx(template)
-  pwalk(.l = configuratie, .f = content_plaatsen, data = data, template = template)
-  print(template, rapport)
+  pwalk(.l = slideconfiguratie, .f = content_plaatsen, data = data, template = template, rapportnaam = rapportnaam)
+  print(template, paste0('Rapport ', rapportnaam, '.pptx'))
   
 }
 
 
 # 8. Rapportage maken via functie -----------------------------------------
 
-rapportage_maken('2. Template.pptx',configuratie,data,'Overzicht figuren.pptx')
+rapportage_maken(template = '2. Template.pptx',
+                 slideconfiguratie = slideconfiguratie,
+                 data = data,
+                 rapportnaam = 'School 1')
+
+
+# 9. Rapportages maken op basis van rapportconfiguratie -------------------
+
+sapply(X = rapportconfiguratie$rapport, FUN = rapportage_maken, template = '2. Template.pptx',
+       slideconfiguratie = slideconfiguratie, data = data)
