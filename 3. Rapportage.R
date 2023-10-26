@@ -99,6 +99,18 @@ bereken_cijfers <- function(data, rapportnaam, indicator, omschrijving = NA, gro
 # bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
 # bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
 
+# 4b: functie inclusief significantietoets ## Toevoeging Arne om een chi squared toets toe te voegen aan de resultaten
+result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
+result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
+result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+
+result$p_val <- chisq.test(result[,c("n","n_min")])$p.value
+result$chi_val <- chisq.test(result[,c("n","n_min")])$statistic
+result$df <- chisq.test(result[,c("n","n_min")])$parameter
+result
+
+
+
 
 # 5. Functies maken om content te genereren -------------------------------
 
