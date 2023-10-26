@@ -13,7 +13,7 @@ library(readxl) # Package om te werken met exceldocumenten
 library(tidyverse) # Meer informatie over het tidyverse is te vinden op: https://www.tidyverse.org/
 library(mschart) # Package voor het aanmaken van office grafieken
 library(officer) # Package om Powerpoint (en andere MS Office) documenten aan te maken of te bewerken vanuit R
-
+library(dplyr) # package om met pipelines en databewerking te werken
 
 # 1. Nepdata genereren ----------------------------------------------------
 data <- data.frame(GELUK = sample(x = c(NA, 0, 1), size = 10000, replace = T, prob = c(0.05, 0.15, 0.8)),
@@ -74,7 +74,8 @@ grafiekstijl <- function(x, grafiektitel = NULL, labelpositie = 'outEnd', labelk
 
 # 4. Functie maken om cijfers te berekenen --------------------------------
 
-## Update Arne 26-10: chi squared toegevoegd aan 'bereken_cijfers' functie
+## Update Arne 26-10: chi squared toegevoegd aan 'bereken_cijfers' functie, inclusief suggestie voor uitspraak over 'hoger'/'lager'
+
 bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
   
   result <- data %>%
@@ -96,18 +97,40 @@ bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA,
   # Perform chi-squared test
   chi_squared_result <- chisq.test(result[, c("n", "n_min")])
   
-  # Add chi-squared test results to the result dataframe
+  hoogste_waarde <- which.max(result$val)
+  rij_met_hoogste_waarde <- result[hoogste_waarde, ]
+  laagste_waarde <- which.min(result$val)
+  rij_met_laagste_waarde <- result[laagste_waarde, ]
+  
+  # Extract 'omschrijving' for highest and lowest values
+  hoogste_omschrijving <- rij_met_hoogste_waarde$var
+  laagste_omschrijving <- rij_met_laagste_waarde$var
+  hoogste_categorie <- rij_met_hoogste_waarde[2]
+  laagste_categorie <- rij_met_laagste_waarde[2]
+  
+    # Add chi-squared test results to the result dataframe
   result$p_val <- chi_squared_result$p.value
   result$chi_val <- chi_squared_result$statistic
   result$df <- chi_squared_result$parameter
   
-  return(result)
+  # Create a text description string
+  description_text <- paste(hoogste_categorie,"scoort hoger op", hoogste_omschrijving, "dan", laagste_categorie, "dit verschil is statistisch",ifelse(result$p_val[1]<= 0.05,'significant','niet significant'))
+  
+  
+  # Create a list to store and return multiple results
+  result_list <- list(result = result, description = description_text)
+  
+  return(result_list)
 }
 
 bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
 bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
-bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'SCHOOL')
 bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', groepering = 'KLAS')
+
+## Voor meerdere splitsingen is de toegevoegde significantietoets niet geschikt. 
+#bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+#bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'SCHOOL')
 
 
 
