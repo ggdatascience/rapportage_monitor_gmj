@@ -74,10 +74,10 @@ grafiekstijl <- function(x, grafiektitel = NULL, labelpositie = 'outEnd', labelk
 
 # 4. Functie maken om cijfers te berekenen --------------------------------
 
-bereken_cijfers <- function(data, rapportnaam, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
+## Update Arne 26-10: chi squared toegevoegd aan 'bereken_cijfers' functie
+bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
   
-  data %>%
-    filter(RAPPORT == rapportnaam) %>%
+  result <- data %>%
     select(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA))) %>%
     group_by(across(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA)))) %>%
     tally() %>%
@@ -88,27 +88,26 @@ bereken_cijfers <- function(data, rapportnaam, indicator, omschrijving = NA, gro
            val = ifelse(ntot < Nvar | min(n) < Ncel | n == ntot, NA, n/ntot) %>% as.numeric()) %>%
     filter_at(vars(all_of(indicator)), function(x) x == 1) %>%
     ungroup() %>%
-    mutate(across(!n & !ntot & !val, to_character)) %>%
+    mutate(across(!n & !ntot & !val, to_character),
+           n_min = ntot - n) %>%
     rename(var = 1) %>%
     mutate(var = omschrijving)
   
+  # Perform chi-squared test
+  chi_squared_result <- chisq.test(result[, c("n", "n_min")])
+  
+  # Add chi-squared test results to the result dataframe
+  result$p_val <- chi_squared_result$p.value
+  result$chi_val <- chi_squared_result$statistic
+  result$df <- chi_squared_result$parameter
+  
+  return(result)
 }
 
-# Testen van bereken_cijfers() functie
-# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig')
-# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
-# bereken_cijfers(data, rapportnaam = 'School 2', 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
-
-# 4b: functie inclusief significantietoets ## Toevoeging Arne om een chi squared toets toe te voegen aan de resultaten
-result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
-result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
-result <- bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
-
-result$p_val <- chisq.test(result[,c("n","n_min")])$p.value
-result$chi_val <- chisq.test(result[,c("n","n_min")])$statistic
-result$df <- chisq.test(result[,c("n","n_min")])$parameter
-result
-
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', groepering = 'KLAS')
 
 
 
