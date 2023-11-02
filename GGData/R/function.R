@@ -20,20 +20,50 @@ grafiekstijl <- function(x, grafiektitel = NULL, labelpositie = 'outEnd', labelk
 
 # Functie maken om cijfers te berekenen ####
 bereken_cijfers <- function(data, indicator, omschrijving = NA, groepering = NA, uitsplitsing = NA, Nvar = 30, Ncel = 30) {
-  data %>%
+  
+  result <- data %>%
     select(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA))) %>%
     group_by(across(all_of(setdiff(c(indicator, groepering, uitsplitsing), NA)))) %>%
     tally() %>%
     drop_na() %>%
-    {if(is.na(uitsplitsing) & is.na(groepering)) .
+    {if(is.na(uitsplitsing) & is.na(groepering)) . 
       else group_by(., across(all_of(setdiff(c(groepering, uitsplitsing), NA))))} %>%
     mutate(ntot = sum(n),
            val = ifelse(ntot < Nvar | min(n) < Ncel | n == ntot, NA, n/ntot) %>% as.numeric()) %>%
     filter_at(vars(all_of(indicator)), function(x) x == 1) %>%
     ungroup() %>%
-    mutate(across(!n & !ntot & !val, to_character)) %>%
+    mutate(across(!n & !ntot & !val, to_character),
+           n_min = ntot - n) %>%
     rename(var = 1) %>%
     mutate(var = omschrijving)
+  
+  # Perform chi-squared test
+  chi_squared_result <- chisq.test(result[, c("n", "n_min")])
+  
+  hoogste_waarde <- which.max(result$val)
+  rij_met_hoogste_waarde <- result[hoogste_waarde, ]
+  laagste_waarde <- which.min(result$val)
+  rij_met_laagste_waarde <- result[laagste_waarde, ]
+  
+  # Extract 'omschrijving' for highest and lowest values
+  hoogste_omschrijving <- rij_met_hoogste_waarde$var
+  laagste_omschrijving <- rij_met_laagste_waarde$var
+  hoogste_categorie <- rij_met_hoogste_waarde[2]
+  laagste_categorie <- rij_met_laagste_waarde[2]
+  
+    # Add chi-squared test results to the result dataframe
+  result$p_val <- chi_squared_result$p.value
+  result$chi_val <- chi_squared_result$statistic
+  result$df <- chi_squared_result$parameter
+  
+  # Create a text description string
+  description_text <- paste(hoogste_categorie,"scoort hoger op", hoogste_omschrijving, "dan", laagste_categorie, "dit verschil is statistisch",ifelse(result$p_val[1]<= 0.05,'significant','niet significant'))
+  
+  
+  # Create a list to store and return multiple results
+  result_list <- list(result = result, description = description_text)
+  
+  return(result_list)
 }
 
 # Functie voor losse cijfers ####
