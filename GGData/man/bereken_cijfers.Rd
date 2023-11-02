@@ -30,7 +30,9 @@ bereken_cijfers(x)
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+%% Vermeulen, Sander <s.vermeulen@vrln.nl>
+%% Michielse, Stijn <Stijn.Michielse@ggdzl.nl>
+%% Arne Meeldijk <a.meeldijk@ggdbzo.nl>
 }
 \note{
 %%  ~~further notes~~
@@ -42,14 +44,15 @@ bereken_cijfers(x)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+#Bereken cijfers voor indicator 'Voelt zich gelukkig'
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'SCHOOL')
+bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', groepering = 'KLAS')
 
-## The function is currently defined as
-function (x)
-{
-  }
+#Voor meerdere splitsingen is de toegevoegde significantietoets niet geschikt. 
+#bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'KLAS')
+#bereken_cijfers(data, 'GELUK', omschrijving = 'Voelt zich gelukkig', uitsplitsing = 'GESLACHT', groepering = 'SCHOOL')
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
