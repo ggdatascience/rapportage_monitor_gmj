@@ -1,11 +1,14 @@
 Package: GGData
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Gezondsheidsmonitor jeugd
+Version: 1.0.0
+Author: Sander Vermeulen <s.vermeulen@vrln.nl>
+Maintainer: Sander Vermeulen <s.vermeulen@vrln.nl>
+Description: R package with all functions to automate reports for monitoring health for youth. Reports regarding schools and local governments.
+License: GPL
 Encoding: UTF-8
 LazyData: true
+Depends: R (>= 4.0)
+Imports: haven (>= 2.5.0), labelled (>= 2.12.0), readxl (>= 1.4.0), tidyverse (>= 2.0.0), mschart (>= 0.4.0), officer (>= 0.6.0)
+NeedsCompilation: no
+Packaged: 2023-12-15 15:00:00 CET
