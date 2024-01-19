@@ -14,17 +14,34 @@ library(readxl) # Package om te werken met exceldocumenten
 library(tidyverse) # Meer informatie over het tidyverse is te vinden op: https://www.tidyverse.org/
 library(mschart) # Package voor het aanmaken van office grafieken
 library(officer) # Package om Powerpoint (en andere MS Office) documenten aan te maken of te bewerken vanuit R
+library(flextable) # Package om tabellen te maken
 
-# 1. Dataconfiguratie ----------------------------------------------------
+# Working directory bepalen
+# Je kunt op meerdere manieren de werkmap bepalen waarin je documenten staan.
+# In het paneel met het tabbled Files (meestal het paneel rechtsonder) zie je de map die R als werkmap beschouwd.
+# Je kunt met de functie getwd() de padnaam zien van je werkmap.
+getwd()
+
+# De werkmap is meestal de map van waaruit je een R script opent. Is dit niet zo dan kun je met setwd() je werkmap bepalen.
+setwd('C:/padnaam')
+
+
+# 1. Data inladen ---------------------------------------------------------
 
 # Inladen van een trendbestand. Laad hier je eigen bestand in.
 data <- read_spss('Testdata GMJ2023.sav')
 
+# Indicator onderwijsniveau hercoderen naar factor variabele (anders wordt deze in alfabetische volgorde getoond in figuren)
+data$MBOKK3S31 <- factor(data$MBOKK3S31, levels = c('Vmbo', 'Havo/Vwo'), ordered = T)
+
 
 # 2. Excelbestand met configuratie laden ----------------------------------
 
+# Padnaam opgeven van de Excel configuratie. Staat dit bestand in je working directory dan hoef je alleen de bestandsnaam
+# op te geven (inclusief de bestandsextensie)
 padnaam_configuratie <- '1. Configuratie.xlsx'
 
+# Inladen van alle tabbladen van de Excel configuratie
 configuratie <- padnaam_configuratie %>% 
   excel_sheets() %>% 
   set_names() %>% 
@@ -38,6 +55,9 @@ kleuren <- c('#009898', '#91caca', '#b9b441', '#dcd9a6', '#e8525f', '#e9acb0')
 
 # Lettertype importeren. In de console wordt gevraagd of je dit wil doen run 'y' in de console om te importeren.
 extrafont::font_import(pattern = 'GOTHIC')
+
+# Check om te zien of het lettertype goed is ingeladen (check of het lettertype Century Gothic ertussen staat)
+windowsFonts()
 
 # Lettertype bepalen
 lettertype <- "Century Gothic"
@@ -68,7 +88,6 @@ grafiekstijl <- function(x, grafiektitel = NULL, datalabels = T, labelpositie = 
   
 }
 
-
 # 4. Functie maken om cijfers te berekenen --------------------------------
 
 bereken_cijfers <- function(data,
@@ -79,7 +98,7 @@ bereken_cijfers <- function(data,
   niveau_var <- {if(niveau == 'basis') basis else if(niveau == 'referentie') referentie}
   niveau_label <- {if(niveau == 'basis') basis_label else if(niveau == 'referentie') referentie_label}
   
-  data %>%
+  result <- data %>%
     filter(.data[[niveau_var]] == niveau_label & .data[[var_jaar]] %in% jaar) %>%
     select(all_of(setdiff(c(var_jaar, indicator, uitsplitsing, groepering), NA))) %>%
     group_by(across(all_of(setdiff(c(var_jaar, indicator, uitsplitsing, groepering), NA)))) %>%
@@ -101,12 +120,35 @@ bereken_cijfers <- function(data,
     {if(!is.na(groepering)) rename(., groepering = .data[[groepering]]) else .} %>%
     mutate(across(!n & !ntot & !nmin & !val & !jaar, to_character)) %>%
     select(indicator, omschrijving, jaar, niveau, aslabel, everything())
+  
+  # Perform chi-squared test
+  
+  if(toetsen == T){
+    
+    chi_squared_result <- chisq.test(result[, c("n", "nmin")])
+    
+    hoogste_waarde <- which.max(result$val)
+    rij_met_hoogste_waarde <- result[hoogste_waarde, ]
+    laagste_waarde <- which.min(result$val)
+    rij_met_laagste_waarde <- result[laagste_waarde, ]
+    
+    # Extract 'omschrijving' for highest and lowest values
+    hoogste_omschrijving <- rij_met_hoogste_waarde$omschrijving
+    laagste_omschrijving <- rij_met_laagste_waarde$omschrijving
+    hoogste_categorie <- rij_met_hoogste_waarde[2]
+    laagste_categorie <- rij_met_laagste_waarde[2]
+    
+    # Add chi-squared test results to the result dataframe
+    result$p_val <- chi_squared_result$p.value
+    result$chi_val <- chi_squared_result$statistic
+    result$df <- chi_squared_result$parameter
+    
+  }
+  
+  return(result)
+  
+  
 }
-
-bereken_cijfers(data = data,
-                basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
-                omschrijving = NA, indicator, waarden = 1, valuelabel = NA, uitsplitsing = NA, groepering = NA, niveau, jaar = NA, 
-                var_jaar = 'Onderzoeksjaar', Nvar = 30, Ncel = 5, toetsen = F)
 
 
 # 5. Functies maken om content te genereren -------------------------------
@@ -128,13 +170,69 @@ type_percentage <- function(data,
       else if(format == 'getal') .}
 }
 
+# adjust ####
+type_percentage_tekst <- function(data, basis = NA, basis_label = NA, 
+                                  omschrijving = NA, referentie = NA, referentie_label = NA, 
+                                  indicator, waarden, niveau, jaar, format = 'percentage tekst') {
+  
+  data %>%
+    bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label, indicator = indicator, omschrijving = omschrijving, waarden = waarden, niveau = niveau, jaar = jaar) %>%
+    mutate(., val = round(val*100)) %>%
+    select(val) %>%
+    unlist() %>%
+    unname() %>%
+    {if(is.na(.)) '-' 
+      else if(format == 'percentage tekst') paste0(., '% ', gsub(indicator, ., omschrijving))
+      else if(format == 'getal') .}
+}
+
+
+# type_percentage_tekst(data, basis = 'Schoolcode', basis_label = 'Raayland College Venray', 
+#                       omschrijving = '[LBSDK3S1] van de jongeren op uw school heeft ooit wiet of hasj gebruikt. Het percentage dat in de laatste 4 weken wiet of hasj gebruikt heeft is [LBSDK3S2].', 
+#                       referentie = NA, referentie_label = NA, 'LBSDK3S1', waarden = 1, niveau ='basis', jaar = '2023', format = 'percentage tekst')
+
+
+# functie voor het vergelijken van twee groepen
+type_vergelijking <- function(data, 
+                              basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
+                              indicator, uitsplitsing, groepering, omschrijving, waarden, niveau, jaar, toetsen = T) {
+  
+  cijfers <-data %>%
+    bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
+                    indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, 
+                    uitsplitsing = uitsplitsing, groepering = groepering, toetsen = toetsen) %>%
+    mutate(percentage = paste0(round(val*100, 0), '%')) %>%
+    select(-indicator, -jaar, -niveau, -aslabel, -n, -ntot, -val, -nmin, -chi_val, -df) %>%
+    rename(labels = 2)  %>%
+    pivot_wider(names_from = labels,
+                values_from = percentage) 
+  
+  # Volgorde van kolommen aanpassen zodat de eerstgenoemde groep in de tekst ook de eerste groep (derde kolom) in het dataframe is 
+  # en de laatste genoemde groep in de tekst de tweede groep (vierde kolom)
+  {if((cijfers$omschrijving %>% str_locate(names(cijfers)[3]) %>% .[1]) > (cijfers$omschrijving %>% str_locate(names(cijfers)[4]) %>% .[1])) select(cijfers, 1,2,4,3)
+  else cijfers} %>%
+    mutate(omschrijving = str_replace(omschrijving, paste0('\\[', names(.)[3], '\\]'), unlist(.[1,3])),
+           omschrijving = str_replace(omschrijving, paste0('\\[', names(.)[4], '\\]'), unlist(.[1,4])),
+           omschrijving = {if(p_val >= 0.05) str_replace(omschrijving, '\\[hoger dan/lager dan/vergelijkbaar met\\]', 'vergelijkbaar met')
+                           else if(p_val < 0.05) str_replace(omschrijving, '\\[hoger dan/lager dan/vergelijkbaar met\\]',
+                                                             ifelse(unlist(.[1,3]) > unlist(.[1,4]), 'hoger dan', 'lager dan'))}) %>%
+    pull(omschrijving) 
+  
+}
+
+# type_vergelijking(data = data, toetsen = T,
+#                   basis = 'Schoolcode', basis_label = 'Raayland College Venray', referentie = 'totaal', referentie_label = 'totaal',
+#                   omschrijving = 'Van de meisjes voelt [Meisje] zich gelukkig en dit percentage is [hoger dan/lager dan/vergelijkbaar met] jongens, waarvan [Jongen] zich gelukkig voelt.',
+#                   indicator = 'EBEGK3S2', waarden = 1, uitsplitsing = 'GENDER', groepering = NA, niveau = 'basis', jaar = 2023)
+
+
 # functie voor staafgrafiek
 type_staafgrafiek <- function(data,
                               basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
                               omschrijving = NA, indicator, waarden = 1, uitsplitsing = NA, groepering = NA, niveau, jaar) {
   
   if(niveau == 'basis' | niveau == 'referentie') {
-    
+
   data %>%
   bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
                   indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
@@ -142,21 +240,24 @@ type_staafgrafiek <- function(data,
           ms_barchart(., x = 'uitsplitsing', y = 'val', group = 'groepering') %>%
           chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
           set_theme(chart_theme) %>%
-          grafiekstijl(grafiektitel = omschrijving)
+          grafiekstijl(grafiektitel = omschrijving, 
+                       ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else if(!is.na(uitsplitsing) & is.na(groepering))
           ms_barchart(., x = 'uitsplitsing', y = 'val') %>%
           chart_data_fill(kleuren[1]) %>%
           set_theme(chart_theme) %>%
           chart_theme(legend_position = 'n') %>%
-        grafiekstijl(grafiektitel = omschrijving)
+          grafiekstijl(grafiektitel = omschrijving, 
+                     ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else if(is.na(uitsplitsing) & !is.na(groepering))
           ms_barchart(., x = 'omschrijving', y = 'val', group = 'groepering') %>%
           chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
           set_theme(chart_theme) %>%
           chart_ax_x(tick_label_pos = 'none') %>%
-        grafiekstijl(grafiektitel = omschrijving)
+          grafiekstijl(grafiektitel = omschrijving, 
+                     ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else
         ms_barchart(., x = 'omschrijving', y = 'val') %>%
@@ -164,7 +265,8 @@ type_staafgrafiek <- function(data,
           set_theme(chart_theme) %>%
           chart_theme(legend_position = 'n') %>%
           chart_ax_x(tick_label_pos = 'none') %>%
-          grafiekstijl(grafiektitel = omschrijving)
+          grafiekstijl(grafiektitel = omschrijving, 
+                       ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
     }
     
   } else if(niveau == 'basis en referentie') {
@@ -178,16 +280,79 @@ type_staafgrafiek <- function(data,
            omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
       reduce(bind_rows) %>%
       mutate(niveau = factor(niveau, levels = c('School', 'Regio'), ordered = T)) %>%
-      ms_barchart(x = 'omschrijving', y = 'val', group = 'niveau') %>%
+      ms_barchart(x = 'aslabel', y = 'val', group = 'niveau') %>% # x is nu 'aslabel' en niet 'omschrijving' kan mogelijk problemen opleveren
       chart_data_fill(kleuren[c(1,5)] %>% set_names(c('School', 'Regio'))) %>%
       set_theme(chart_theme) %>%
       chart_theme(legend_position = 'b') %>%
       chart_ax_x(tick_label_pos = 'none') %>%
       chart_settings(overlap = -20) %>%
-      grafiekstijl(grafiektitel = omschrijving)
+      grafiekstijl(grafiektitel = omschrijving,
+                   ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
     
   }
 }
+
+# type_staafgrafiek(data = data,
+#                   basis = 'Schoolcode', basis_label = 'Raayland College Venray', referentie = 'totaal', referentie_label = 'totaal',
+#                   omschrijving = 'grafiektitel', indicator = 'LOMVK301', waarden = 1, uitsplitsing = NA, groepering = NA, niveau = 'basis en referentie', jaar = 2023) %>%
+#   print(preview = T)
+
+# functie voor gestapelde staafgrafiek
+type_staafgrafiek_gestapeld <- function(data,
+                                        basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
+                                        omschrijving = NA, indicator, waarden = NA, niveau, jaar,
+                                        valuelabel = NA, horizontaal = F) {
+  
+  if(niveau == 'basis' | niveau == 'referentie') {
+    
+    data %>%
+      bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
+                      indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, valuelabel = valuelabel) %>%
+      mutate(aslabel = factor(aslabel, levels = unique(aslabel), ordered = T)) %>%
+      ms_barchart(x = 'niveau', y = 'val', group = 'aslabel') %>% # x is nu 'aslabel' en niet 'omschrijving' kan mogelijk problemen opleveren
+      {if(horizontaal == T) as_bar_stack(., dir = 'horizontal') else .} %>%
+      chart_settings(grouping = "stacked", gap_width = 50, overlap = 100 ) %>%
+      chart_data_fill(kleuren[1:(val_labels(data[[indicator]]) %>% names() %>% str_subset('[Oo]nbekend', negate = T)  %>% str_subset('[Nn][Vv][Tt]', negate = T) %>% length())] %>% 
+                        setNames(val_labels(data[[indicator]]) %>% names() %>% str_subset('[Oo]nbekend', negate = T)  %>% str_subset('[Nn][Vv][Tt]', negate = T))) %>%
+      set_theme(chart_theme) %>%
+      chart_theme(legend_position = 'b') %>%
+      grafiekstijl(grafiektitel = omschrijving,
+                   ylimiet = 1,
+                   labelpositie = 'ctr',
+                   labelkleur = 'white')
+    
+  } else if(niveau == 'basis en referentie') {
+    
+    data.frame(niveau = c('basis', 'referentie'),
+               basis = c(basis, NA),
+               basis_label = c(basis_label, NA),
+               referentie = c(NA, referentie),
+               referentie_label = c(NA, referentie_label)) %>%
+      pmap(bereken_cijfers, data = data, indicator = indicator, waarden = waarden, jaar = jaar, 
+           omschrijving = omschrijving) %>%
+      reduce(bind_rows) %>%
+      mutate(niveau = factor(niveau, levels = c('School', 'Regio'), ordered = T),
+             aslabel = factor(aslabel, levels = unique(aslabel), ordered = T)) %>%
+      ms_barchart(x = 'niveau', y = 'val', group = 'aslabel') %>% # x is nu 'aslabel' en niet 'omschrijving' kan mogelijk problemen opleveren
+      {if(horizontaal == T) as_bar_stack(., dir = 'horizontal') else .} %>%
+      chart_settings(grouping = "stacked", gap_width = 50, overlap = 100 ) %>%
+      chart_data_fill(kleuren[1:(val_labels(data[[indicator]]) %>% names() %>% str_subset('[Oo]nbekend', negate = T) %>% str_subset('[Nn][Vv][Tt]', negate = T) %>% length())] %>% 
+                        setNames(val_labels(data[[indicator]]) %>% names() %>% str_subset('[Oo]nbekend', negate = T) %>% str_subset('[Nn][Vv][Tt]', negate = T))) %>%
+      set_theme(chart_theme) %>%
+      chart_theme(legend_position = 'b') %>%
+      grafiekstijl(grafiektitel = omschrijving,
+                   ylimiet = 1,
+                   labelpositie = 'ctr',
+                   labelkleur = 'white')
+    
+  }
+}
+
+# type_staafgrafiek_gestapeld(data = data,
+#                             basis = 'Schoolcode', basis_label = 'Raayland College Venray', referentie = 'totaal', referentie_label = 'totaal',
+#                             omschrijving = 'Hoeveel van je vrienden en vriendinnen drinken alcohol?', indicator = 'LOMVK301', waarden = c(1,2,3,4),
+#                             niveau = 'basis', jaar = 2023, horizontaal = T) %>%
+#   print(preview = T)
 
 # functie voor trendgrafiek
 type_trendgrafiek <- function(data,
@@ -206,7 +371,8 @@ type_trendgrafiek <- function(data,
            jaar = as.character(jaar)) %>%
     ms_linechart(x = 'jaar', y = 'val', group = 'niveau') %>%
     set_theme(chart_theme) %>%
-    grafiekstijl(grafiektitel = omschrijving, datalabels = F, labelpositie = 't') %>%
+    grafiekstijl(grafiektitel = omschrijving, datalabels = F, labelpositie = 't',
+                 ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1)) %>%
     chart_data_fill(kleuren[c(1,5)] %>% set_names(c('School', 'Regio'))) %>%
     chart_data_stroke(kleuren[c(1,5)] %>% set_names(c('School', 'Regio'))) %>%
     chart_data_symbol('none')
@@ -216,29 +382,73 @@ type_trendgrafiek <- function(data,
 type_combi <- function(data,
                        basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
                        omschrijving = NA, indicator, waarden = 1, uitsplitsing = NA, groepering = NA, niveau, jaar,
-                       valuelabel = NA, horizontaal = F) {
+                       valuelabel = NA, horizontaal = F, selectie = F, selectie_n = NA) {
   
   data.frame(indicator = indicator,
              valuelabel = valuelabel) %>%
     pmap(bereken_cijfers, data = data, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
       waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
     reduce(bind_rows) %>%
-    {if(!is.na(groepering)) 
+    {if(selectie == T) arrange(., desc(val)) %>%
+      top_n(n = selectie_n) else .} %>%
+    {if(!is.na(groepering))
       ms_barchart(.,x = 'aslabel', y = 'val', group = 'groepering') %>%
         chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
         set_theme(chart_theme)
-        
+
       else ms_barchart(.,x = 'aslabel', y = 'val') %>%
         chart_data_fill(kleuren[1]) %>%
         set_theme(chart_theme) %>%
         chart_theme(legend_position = 'n')} %>%
-    grafiekstijl(grafiektitel = omschrijving) %>%
+    grafiekstijl(grafiektitel = omschrijving, ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1)) %>%
     {if(horizontaal == T) chart_settings(., dir = "horizontal") else .}
 
 }
 
+# type_combi(data = data, basis = 'Schoolcode', basis_label = 'Raayland College Venray',
+#            referentie = NA, referentie_label = NA, omschrijving = 'Jongeren komen aan alcohol via',
+#            indicator = c('LOAGK311', 'LOAGK312', 'LOAGK313', 'LOAGK314', 'LOAGK315'),
+#            niveau = 'basis', jaar = 2023,
+#            valuelabel = c('Zelf kopen', 'Anderen kopen', 'Vrienden', 'Ouders', 'Andere volwassenen'), horizontaal = F) %>%
+#   print(preview = T)
 
-# 6. Functies aanmaken om content te genereren en te plaatsen -------------
+# functie voor responstabel
+type_tabel <- function(data,
+                       basis = NA, basis_label = NA,
+                       indicator, var_jaar = 'Onderzoeksjaar', jaar = 2023,
+                       valuelabel) {
+  
+  data %>%
+    filter(.data[[basis]] == basis_label & .data[[var_jaar]] %in% jaar) %>%
+    select(all_of(setdiff(c(indicator), NA))) %>%
+    group_by(across(all_of(setdiff(c(indicator), NA)))) %>%
+    tally() %>%
+    drop_na() %>%
+    ungroup()%>%
+    mutate(across(!n, to_character)) %>%
+    `colnames<-`(c(valuelabel, 'Aantal')) %>%
+    flextable() %>%
+    border_remove() %>%
+    fontsize(size = 12, part = "all") %>%
+    font(fontname = lettertype, part = "all") %>%
+    align(align = "center", part = "all") %>%
+    bg(bg = kleuren[5], part = "header") %>%
+    bg(bg = kleuren[2], i = {if(.$body %>% .$data %>% nrow == 8) 1:4 else 1:2}) %>%
+    bg(bg = kleuren[1], i = {if(.$body %>% .$data %>% nrow == 8) 5:8 else 3:4}) %>%
+    color(color = "white", part = "all") %>%
+    border_outer(part="all", border = fp_border_default(width = 1, color = "white") ) %>%
+    border_inner_h(border = fp_border_default(width = 1, color = "white"), part="all") %>%
+    border_inner_v(border = fp_border_default(width = 1, color = "white"), part="all") %>%
+    set_table_properties(layout = "fixed") %>%
+    height_all(height = 1.03, unit = 'cm') %>%
+    width(width = 5.85, unit = 'cm')
+  
+}
+
+# type_tabel(data = data, basis = 'Schoolcode', basis_label = 'Blariacum Venlo',
+#            indicator = c('KLAS', 'MBOKK3S31', 'GENDER'), valuelabel = c('Leerjaar', 'Onderwijsniveau', 'Gender'))
+
+# 6. Functie aanmaken om content te genereren en te plaatsen -------------_
 
 # Functie aanmaken die op basis van de kolom 'type' uit de configuratie content genereert.
 content_plaatsen <- function(data, template, 
@@ -252,6 +462,10 @@ content_plaatsen <- function(data, template,
   } else if(type == 'datum') {
     
     value <- Sys.Date() %>% format(format = "%d-%m-%Y") %>% as.character()
+  
+    } else if(type == 'responstabel') {
+    
+    value <- 'output type nog niet beschikbaar'
     
   } else if(type == 'percentage') {
     
@@ -260,6 +474,10 @@ content_plaatsen <- function(data, template,
                              indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar,
                              format = 'percentage')
   
+  } else if(type == 'percentage in tekst') {
+    
+    value <- 'Hier komt een dynamische tekst, maar daar wordt nog aan gewerkt.'
+    
   } else if(type == 'staafgrafiek') {
     
     value <- type_staafgrafiek(data = data,
@@ -276,13 +494,13 @@ content_plaatsen <- function(data, template,
   } else if(type == 'combi') {
     
     value <- type_combi(data = data,
-                        basis = basis, basis_label = basis_label, valuelabel = valuelabel,
+                        basis = basis, basis_label = basis_label, valuelabel = valuelabel, referentie = referentie, referentie_label = referentie_label,
                         omschrijving = omschrijving, indicator = indicator, uitsplitsing = uitsplitsing, groepering = groepering, waarden = waarden, niveau = niveau, jaar = jaar) 
   
   } else if(type == 'combi liggend') {
     
     value <- type_combi(data = data, horizontaal = T,
-                        basis = basis, basis_label = basis_label, valuelabel = valuelabel,
+                        basis = basis, basis_label = basis_label, valuelabel = valuelabel, referentie = referentie, referentie_label = referentie_label,
                         omschrijving = omschrijving, indicator = indicator, uitsplitsing = uitsplitsing, groepering = groepering, waarden = waarden, niveau = niveau, jaar = jaar) 
     
   } else if(type == 'vergelijking') {
@@ -292,14 +510,25 @@ content_plaatsen <- function(data, template,
   
   } else if(type == 'staafgrafiek gestapeld') {
     
-    value <- type_staafgrafiek_gestapeld(data = data, basis_label = basis_label, indicator = indicator, 
-                      omschrijving = omschrijving, uitsplitsing = uitsplitsing)
+    value <- type_staafgrafiek_gestapeld(data = data, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
+                                         niveau = niveau, jaar = jaar, waarden = waarden,
+                                         indicator = indicator, omschrijving = omschrijving, horizontaal = T)
     
-  } else if(type == 'top 3') {
+  } else if(str_detect(type, '^top') == T) {
     
-    value <- type_top3()
+    value <- type_combi(data = data,
+                        basis = basis, basis_label = basis_label, valuelabel = valuelabel, referentie = referentie, referentie_label = referentie_label,
+                        omschrijving = omschrijving, indicator = indicator, uitsplitsing = uitsplitsing, groepering = groepering, waarden = waarden, niveau = niveau, jaar = jaar,
+                        selectie = T, selectie_n = str_extract(type,'\\d+')) 
     
-  }
+  } else if(type == 'tabel') {
+    
+    value <- type_tabel(data = data,
+                        basis = basis, basis_label = basis_label,
+                        indicator = indicator, jaar = jaar,
+                        valuelabel = valuelabel)
+    
+  } 
   
   on_slide(template, index = index) %>%
     ph_with(value = value, location = ph_location_label(ph_label = label))
@@ -314,7 +543,7 @@ rapportage_maken <- function(data, template, configuratie, basis, basis_label, r
   
   slideconfiguratie <- configuratie[[slideconfiguratie]] %>%
     select(-vraag) %>%
-    mutate(across(c(indicator, valuelabel, niveau, jaar), ~ .x %>% str_split('; ')))
+    mutate(across(c(indicator, waarden, valuelabel, jaar), ~ .x %>% str_split(';\\s*')))
   
   template <- read_pptx(template)
   pwalk(.l = slideconfiguratie, .f = content_plaatsen, data = data, template = template, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label)
