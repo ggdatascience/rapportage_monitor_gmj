@@ -515,8 +515,7 @@ content_plaatsen <- function(data, template,
     
     value <- type_percentage(data, 
                              basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
-                             indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar,
-                             format = 'percentage')
+                             indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar)
   
   } else if(type == 'percentage in tekst') {
     
