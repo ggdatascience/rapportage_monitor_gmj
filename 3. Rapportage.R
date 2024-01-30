@@ -160,8 +160,7 @@ bereken_cijfers <- function(data,
 # functie voor het berekenen van percentages
 type_percentage <- function(data, 
                             basis = NA, basis_label = NA, referentie = NA, referentie_label = NA,
-                            indicator, waarden, niveau, jaar,
-                            format = 'percentage') {
+                            indicator, waarden, niveau, jaar) {
   data %>%
     bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
                     indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar) %>%
@@ -169,9 +168,10 @@ type_percentage <- function(data,
     select(val) %>%
     unlist() %>%
     unname() %>%
-    {if(is.na(.)) '-' 
-      else if(format == 'percentage') paste0(., '%') 
-      else if(format == 'getal') .}
+    {if(length(.) != 1) '-' 
+      else if(is.na(.)) '-' 
+      else paste0(., '%')}
+      
 }
 
 # functie voor het maken van dynamische tekst met percentages
