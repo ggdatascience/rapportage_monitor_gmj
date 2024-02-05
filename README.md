@@ -16,8 +16,8 @@ Tip om trends te maken, data van andere jaren in te laden (op voorwaarde dat de 
   full_join(data2019)***
 
 Tip om foutmelding op basis van labels 0, 8 of 9 te voorkomen
-Zorg ervoor dat de labels 0, 8 en 9 omgezet worden naar NULL:
-***# Value labels 0, 8 en 9 eruit halen
+- Zorg ervoor dat de labels 0, 8 en 9 omgezet worden naar NULL:
+- ***# Value labels 0, 8 en 9 eruit halen
 val_label(data$KLAS, 0) <- NULL
 val_label(data$KLAS, 9) <- NULL
 val_label(data$GENDER, 0) <- NULL
