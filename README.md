@@ -9,10 +9,9 @@ Tip om trends te maken, data van andere jaren in te laden (op voorwaarde dat de 
 - Deze code is te gebruiken om 2021 data in te lezen:
 ***data2021 <- read_spss('Trendbestanden/Trendbestand 2021 met indicatoren 2023 RVO-scholen.sav'))%>% 
   select(indicatoren2021)
-  # Selecteer alleen indicatoren die in databestand van 2021 aanwezig moeten zijn.*** 
-  ***data2019 <- read_spss('Trendbestanden/Trendbestand 2019 met indicatoren 2023 RVO-scholen.sav')) %>% 
+  ***data2019 <- read_spss('Trendbestanden/Trendbestand 2019 met indicatoren 2023 RVO-scholen.sav'))%>% 
   select(indicatoren2019)
-  # Selecteer alleen indicatoren die in databestand van 2019 aanwezig moeten zijn.*** 
+
 - Vervolgens de data samenvoegen tot een volledige trend dataset: 
   ***data <- full_join(data2023, data2021) %>% 
   full_join(data2019)*** 
