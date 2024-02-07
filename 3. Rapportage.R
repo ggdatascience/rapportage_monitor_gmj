@@ -64,9 +64,9 @@ lettertype <- "Century Gothic"
 # Thema voor staafgrafiek aanmaken
 chart_theme <- mschart_theme(
   main_title = fp_text(font.size = 9, bold = TRUE, font.family = lettertype, color = 'black'),
-  axis_title_x = fp_text(font.size = 8, font.family = lettertype),
+  axis_title_x = fp_text(font.size = 9, font.family = lettertype),
   axis_title_y = fp_text(font.size = 9, font.family = lettertype),
-  axis_text_x = fp_text(font.size = 9, font.family = lettertype),
+  axis_text_x = fp_text(font.size = 8, font.family = lettertype),
   axis_text_y = fp_text(font.size = 9, font.family = lettertype),
   legend_text = fp_text(font.size = 9, font.family = lettertype),
   grid_major_line = fp_border(style = "none"),
