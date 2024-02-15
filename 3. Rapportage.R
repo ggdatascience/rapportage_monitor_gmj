@@ -174,20 +174,19 @@ type_percentage <- function(data,
       
 }
 
-# functie voor het maken van dynamische tekst met percentages
 type_percentage_tekst <- function(data, basis = NA, basis_label = NA, valuelabel = NA, omschrijving = NA, uitsplitsing = NA, groepering = NA, referentie = NA, referentie_label = NA, indicator, waarden, niveau, jaar, format = "percentage tekst") {
   
   data.frame(indicator = indicator, valuelabel = valuelabel) %>%
     pmap(bereken_cijfers, data = data, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>% reduce(bind_rows) %>% data.frame(., y = "val") %>% select(c(indicator, val, omschrijving)) %>%
     {if(as.numeric(length(indicator)) == 1) mutate(., val = round(val*100)) %>% pivot_wider(names_from = indicator, values_from = val) %>% 
-        {if(is.na(.[[2]])) paste0('-')
+        {if(is.na(.[[2]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[2], paste0("-"))) %>% select(omschrijving) %>% unlist() %>% unname()
           else if(!is.na(.[[2]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[2], paste0(.[[2]], "%"))) %>% select(omschrijving) %>% unlist() %>% unname()}
       else if(as.numeric(length(indicator)) == 2) mutate(., val = round(val*100)) %>% pivot_wider(names_from = indicator, values_from = val) %>%
         {if(is.na(.[[2]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[2], paste0("-")))
           else if(!is.na(.[[2]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[2], paste0(.[[2]], "%")))
-          } %>% 
-      {if(is.na(.[[3]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[3], paste0("-")))
-        else if(!is.na(.[[3]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[3], paste0(.[[3]], "%"))) %>% select(omschrijving) %>% unlist() %>% unname()
+        } %>% 
+        {if(is.na(.[[3]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[3], paste0("-"))) %>% select(omschrijving) %>% unlist() %>% unname()
+          else if(!is.na(.[[3]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[3], paste0(.[[3]], "%"))) %>% select(omschrijving) %>% unlist() %>% unname()
         }
       else if(as.numeric(length(indicator)) == 3) mutate(., val = round(val*100)) %>% pivot_wider(names_from = indicator, values_from = val) %>%
         {if(is.na(.[[2]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[2], paste0("-")))
@@ -229,7 +228,7 @@ type_percentage_tekst <- function(data, basis = NA, basis_label = NA, valuelabel
           else if(!is.na(.[[6]])) data.frame(.) %>% mutate(omschrijving = str_replace(omschrijving, colnames(.)[6], paste0(.[[6]], "%"))) %>% select(omschrijving) %>% unlist() %>% unname()
         }
     }
-  }
+}
 
 # type_percentage_tekst(data, basis = 'Schoolcode', basis_label = 'College van de Hoge Hoed',
 #                       omschrijving = 'LBSDK3S1 van de jongeren op uw school heeft ooit wiet of hasj gebruikt. Het percentage dat in de laatste 4 weken wiet of hasj gebruikt heeft is LBSDK3S2.',
