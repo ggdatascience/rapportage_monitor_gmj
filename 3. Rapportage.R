@@ -460,39 +460,55 @@ type_combi <- function(data,
 
 # functie voor responstabel
 type_tabel <- function(data,
-                       basis = NA, basis_label = NA,
-                       indicator, var_jaar = 'Onderzoeksjaar', jaar = 2023,
-                       valuelabel) {
+                       basis = NA, 
+                       basis_label = NA,
+                       indicator, 
+                       var_jaar = 'Onderzoeksjaar', 
+                       jaar = 2023) {
   
-  data %>%
-    filter(.data[[basis]] == basis_label & .data[[var_jaar]] %in% jaar) %>%
-    select(all_of(setdiff(c(indicator), NA))) %>%
-    group_by(across(all_of(setdiff(c(indicator), NA)))) %>%
-    tally() %>%
-    drop_na() %>%
-    ungroup()%>%
-    mutate(across(!n, to_character)) %>%
-    `colnames<-`(c(valuelabel, 'Aantal')) %>%
+  cijfers <- map(indicator, function(x) {
+    
+    data %>%
+      filter(.data[[basis]] == basis_label & .data[[var_jaar]] %in% jaar)  %>%
+      select(all_of(x)) %>%
+      group_by(.data[[x]], .drop = T) %>%
+      tally() %>%
+      drop_na() %>%
+      ungroup()%>%
+      mutate(across(!n, to_character)) %>%
+      rename(Categorie = 1, `Aantal ingevulde vragenlijsten` = 2) %>%
+      mutate(Categorie = ifelse(Categorie == basis_label, 'Totaal', Categorie))
+    }) %>%
+    imap(~mutate(.x, kleur = .y %% 2)) %>%
+    reduce(bind_rows) %>%
+    mutate(index = 1:nrow(.),
+         `Percentage (%)` = ifelse(Categorie == 'Totaal', '-', round(`Aantal ingevulde vragenlijsten` / max(`Aantal ingevulde vragenlijsten`) * 100, 0 )))
+  
+  
+  cijfers %>%
+    select(-kleur, -index) %>%
     flextable() %>%
     border_remove() %>%
     fontsize(size = 12, part = "all") %>%
     font(fontname = lettertype, part = "all") %>%
+    {if(cijfers[1,1] == 'Totaal') bold(., bold = TRUE, i = 1, part = "body") else .} %>%
     align(align = "center", part = "all") %>%
-    bg(bg = kleuren[5], part = "header") %>%
-    bg(bg = kleuren[2], i = {if(.$body %>% .$data %>% nrow == 8) 1:4 else 1:2}) %>%
-    bg(bg = kleuren[1], i = {if(.$body %>% .$data %>% nrow == 8) 5:8 else 3:4}) %>%
+    bg(bg = kleuren[5], part = 'header') %>%
+    bg(bg = kleuren[2], part = 'body') %>%
+    bg(bg = kleuren[1], i = cijfers$index[cijfers$kleur == 1], part = 'body') %>%  
     color(color = "white", part = "all") %>%
+    color(i = 1, j = 1, kleuren[5], part = "header") %>%
     border_outer(part="all", border = fp_border_default(width = 1, color = "white") ) %>%
     border_inner_h(border = fp_border_default(width = 1, color = "white"), part="all") %>%
     border_inner_v(border = fp_border_default(width = 1, color = "white"), part="all") %>%
     set_table_properties(layout = "fixed") %>%
     height_all(height = 1.03, unit = 'cm') %>%
     width(width = 5.85, unit = 'cm')
-  
+
 }
 
 # type_tabel(data = data, basis = 'Schoolcode', basis_label = 'Blariacum Venlo',
-#            indicator = c('KLAS', 'MBOKK3S31', 'GENDER'), valuelabel = c('Leerjaar', 'Onderwijsniveau', 'Gender'))
+#            indicator = c('Schoolcode', 'KLAS', 'MBOKK3S31', 'GENDER'))
 
 
 # 6. Functie aanmaken om content te genereren en te plaatsen --------------
@@ -568,8 +584,7 @@ content_plaatsen <- function(data, template,
     
     value <- type_tabel(data = data,
                         basis = basis, basis_label = basis_label,
-                        indicator = indicator, jaar = jaar,
-                        valuelabel = valuelabel)
+                        indicator = indicator, jaar = jaar)
     
   } 
   
