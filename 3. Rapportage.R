@@ -482,7 +482,7 @@ type_tabel <- function(data,
     imap(~mutate(.x, kleur = .y %% 2)) %>%
     reduce(bind_rows) %>%
     mutate(index = 1:nrow(.),
-         `Percentage (%)` = ifelse(Categorie == 'Totaal', '-', round(`Aantal ingevulde vragenlijsten` / sum(data[[basis]] == basis_label & data[[var_jaar]] %in% jaar) * 100, 0 )))
+         `Percentage (%)` = round(`Aantal ingevulde vragenlijsten` / sum(data[[basis]] == basis_label & data[[var_jaar]] %in% jaar) * 100, 0 ))
   
   
   cijfers %>%
