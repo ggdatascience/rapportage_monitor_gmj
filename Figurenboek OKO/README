@@ -1,6 +1,6 @@
-Bestanden gerelateerd aan het OKO figurenboek volgen binnenkort.
+Het script voor het Figurenboek van OKO is een afgeleide van het format voor de schoolrapportages van de Gezondheidsmonitor Jeugd. Het grootste verschil is dat in dit script de slides vanuit het script worden toegevoegd aan de PowerPointpresentatie op basis van de kolom 'indeling' in de slideconfiguratie. Deze moet dus overeenkomen met de indelingen die beschikbaar zijn in het diamodel. Raadpleeg de handleiding voor de schoolrapportages voor meer informatie over de werking van de Excel configuratie, het template en het R script (https://github.com/ggdatascience/rapportage_monitor_gmj).
 
-Het script is een afgeleide van het format voor de schoolrapportages van de Gezondheidsmonitor Jeugd. 
-Deze scripts zullen worden samengevoegd zodat met hetzelfde script zowel de schoolrapportages als de figurenboeken kunnen worden gemaakt.
+
+Deze scripts zullen waarschijnlijk worden samengevoegd zodat met een script zowel de schoolrapportages als de figurenboeken kunnen worden gemaakt.
 
 
