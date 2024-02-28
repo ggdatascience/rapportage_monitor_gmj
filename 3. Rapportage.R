@@ -273,19 +273,26 @@ type_staafgrafiek <- function(data,
                               omschrijving = NA, indicator, waarden = 1, uitsplitsing = NA, groepering = NA, niveau, jaar) {
   
   if(niveau == 'basis' | niveau == 'referentie') {
-
-  data %>%
+    
+    cijfers <- data %>%
       bereken_cijfers(basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
-                      indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
+                      indicator = indicator, waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering)
+    
+    if(!is.na(groepering)) {
+     
+    legendakleuren <- kleuren[1:length(unique(cijfers$groepering))] %>% set_names(unique(cijfers$groepering))
+    
+    }
+    
     {if(!is.na(uitsplitsing) & !is.na(groepering))
-          ms_barchart(., x = 'uitsplitsing', y = 'val', group = 'groepering') %>%
-          chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
+          ms_barchart(cijfers, x = 'uitsplitsing', y = 'val', group = 'groepering') %>%
+          chart_data_fill(legendakleuren) %>%
           set_theme(chart_theme) %>%
           grafiekstijl(grafiektitel = omschrijving, 
                        ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else if(!is.na(uitsplitsing) & is.na(groepering))
-          ms_barchart(., x = 'uitsplitsing', y = 'val') %>%
+          ms_barchart(cijfers, x = 'uitsplitsing', y = 'val') %>%
           chart_data_fill(kleuren[1]) %>%
           set_theme(chart_theme) %>%
           chart_theme(legend_position = 'n') %>%
@@ -293,15 +300,15 @@ type_staafgrafiek <- function(data,
                      ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else if(is.na(uitsplitsing) & !is.na(groepering))
-          ms_barchart(., x = 'omschrijving', y = 'val', group = 'groepering') %>%
-          chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
+          ms_barchart(cijfers, x = 'omschrijving', y = 'val', group = 'groepering') %>%
+          chart_data_fill(legendakleuren) %>%
           set_theme(chart_theme) %>%
           chart_ax_x(tick_label_pos = 'none') %>%
           grafiekstijl(grafiektitel = omschrijving, 
                      ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1))
   
       else
-        ms_barchart(., x = 'omschrijving', y = 'val') %>%
+        ms_barchart(cijfers, x = 'omschrijving', y = 'val') %>%
           chart_data_fill(kleuren[1]) %>%
           set_theme(chart_theme) %>%
           chart_theme(legend_position = 'n') %>%
