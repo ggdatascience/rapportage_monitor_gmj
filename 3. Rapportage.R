@@ -428,26 +428,33 @@ type_combi <- function(data,
                        omschrijving = NA, indicator, waarden = 1, uitsplitsing = NA, groepering = NA, niveau, jaar,
                        valuelabel = NA, horizontaal = F, selectie = F, selectie_n = NA) {
   
-  data.frame(indicator = indicator,
-             valuelabel = valuelabel) %>%
-    pmap(bereken_cijfers, data = data, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
-      waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
-    reduce(bind_rows) %>%
-    {if(horizontaal == T & !is.na(groepering)) mutate(., groepering = fct_rev(groepering)) else .} %>% 
-    {if(selectie == T) arrange(., desc(val)) %>%
-      top_n(n = selectie_n) else .} %>%
-    {if(!is.na(groepering))
+   cijfers <- data.frame(indicator = indicator, valuelabel = valuelabel) %>%
+     pmap(bereken_cijfers, data = data, basis = basis, basis_label = basis_label, referentie = referentie, referentie_label = referentie_label,
+         waarden = waarden, niveau = niveau, jaar = jaar, omschrijving = omschrijving, uitsplitsing = uitsplitsing, groepering = groepering) %>%
+     reduce(bind_rows) %>%
+     mutate(aslabel = factor(aslabel, levels = unique(aslabel), ordered = T))
+   
+   if(!is.na(groepering)) {
+     
+     legendakleuren <- kleuren[1:length(unique(cijfers$groepering))] %>% set_names(unique(cijfers$groepering))
+     
+   }
+   
+   cijfers %>%
+     {if(horizontaal == T & !is.na(groepering)) mutate(., groepering = fct_rev(groepering), aslabel = fct_rev(aslabel)) else .} %>%
+     {if(selectie == T) arrange(., desc(val)) %>%
+        top_n(n = selectie_n) else .} %>%
+     {if(!is.na(groepering))
       ms_barchart(.,x = 'aslabel', y = 'val', group = 'groepering') %>%
-        chart_data_fill(kleuren[1:(val_labels(data[[groepering]]) %>% length())] %>% set_names(val_labels(data[[groepering]]) %>% names())) %>%
+        chart_data_fill(legendakleuren) %>%
         set_theme(chart_theme)
 
-      else ms_barchart(.,x = 'aslabel', y = 'val') %>%
+       else ms_barchart(.,x = 'aslabel', y = 'val') %>%
         chart_data_fill(kleuren[1]) %>%
         set_theme(chart_theme) %>%
         chart_theme(legend_position = 'n')} %>%
-    grafiekstijl(grafiektitel = omschrijving, ylimiet = ifelse((.$data %>% .$val %>% max(na.rm = T)) < 0.5, 0.5, 1)) %>%
-    {if(horizontaal == T) chart_settings(., dir = "horizontal") else .}
-
+     grafiekstijl(grafiektitel = omschrijving, ylimiet = 1) %>%
+     {if(horizontaal == T) chart_settings(., dir = "horizontal") else .}
 }
 
 
