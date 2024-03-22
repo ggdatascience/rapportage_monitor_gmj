@@ -5,7 +5,7 @@
 
 _Stijltip:_ In het figurenboek is het mooier als de legenda boven aan de staafgrafiek staat. Wil je dit ook? Pas dan regel 179 van het script aan waarbij je de 'b' verandert in 't'.
 
-originieel: 
+origineel:
 legendapositie = if('groepering' %in% names(cijfers) | length(unique(cijfers$niveau)) > 1) **'b'** else 'n'
 
 aangepast: 
