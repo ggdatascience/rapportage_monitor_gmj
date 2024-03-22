@@ -4,7 +4,7 @@ Wil je gewogen cijfers in je figurenboek dan kun je gebruikmaken van de bestande
 2. Template Figurenboek.pptx
 Rapportage.R (Het script staat in de hoofdmap: https://github.com/ggdatascience/rapportage_monitor_gmj/blob/main/Rapportage.R)
 
-Stijltip: In het figurenboek is het mooier als de legenda boven aan staafgrafiek staat. Wil je dit ook? Pas dan regel 179 van het Script waarbij de 'b' verandert in 't'.
+Stijltip: In het figurenboek is het mooier als de legenda boven aan de staafgrafiek staat. Wil je dit ook? Pas dan regel 179 van het script aan waarbij je de 'b' verandert in 't'.
 
 originieel: legendapositie = if('groepering' %in% names(cijfers) | length(unique(cijfers$niveau)) > 1) 'b' else 'n'
 
