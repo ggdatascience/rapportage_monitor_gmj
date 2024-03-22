@@ -22,8 +22,8 @@ In de meest recente update van het script is de mogelijkheid om te wegen toegevo
 <br />
 
 * **Slideconfiguratie**: kolommen toegevoegd en naamgeving aangepast omdat de originele naamgeving verwarring veroorzaakte
-  * Kolom _weging_type_ toegevoegd waarin aangegeven welke weging moeten gebruikt (_geen_, _niveau_ of _indicator_)
-  * Kolom _weegfactor_indicator_ toegevoegd die alleen gebruikt wordt als op indicator niveau wordt gewogen
+  * Kolom _weging_type_ toegevoegd waarin aangegeven moet worden welke weging moeten gebruikt (_geen_, _niveau_ of _indicator_)
+  * Kolom _weegfactor_indicator_ toegevoegd die alleen gevuld moet worden als op indicatorniveau wordt gewogen
   * Naam van de kolom _waarden_ is verandert naar _waarde_
   * Naam van de kolom _value_label_ is verandert naar _indicator_label_
   * Naam van de kolom _index_ is verandert naar _slidenummer_
