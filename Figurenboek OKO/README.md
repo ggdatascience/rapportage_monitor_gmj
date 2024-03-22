@@ -11,7 +11,7 @@ legendapositie = if('groepering' %in% names(cijfers) | length(unique(cijfers$niv
 aangepast: 
 legendapositie = if('groepering' %in% names(cijfers) | length(unique(cijfers$niveau)) > 1) **'t'** else 'n'
 
-* Wil je gebruikmaken van Versie 1 van het figurenboek met alleen ongewogen cijfers gebruik dan:
+* Versie 1 van het figurenboek is ook nog beschikbaar, maar omdat deze geen nieuwe versies meer krijgt is het verstandig om deze niet meer te gebruiken. Heb je hier al eerder gebruik van gemaakt en wil je dit script blijven gebruiken (voor ongewogen cijfers), gebruik dan de volgende bestanden:
   *  '1. Configuratie Figurenboek Ongewogen.xlsx'
   *  '2. Template Figurenboek.pptx'
   *  '3. Script Figurenboek Ongewogen.R'
