@@ -1,4 +1,4 @@
-* Wil je gewogen cijfers in je figurenboek dan kun je gebruikmaken van de bestanden:
+* Wil je gewogen (en/of ongewogen) cijfers in je figurenboek dan kun je gebruikmaken van de bestanden:
   * '1. Configuratie Figurenboek.xlsx'
   * '2. Template Figurenboek.pptx'
   * 'Rapportage.R' (Het script staat in de hoofdmap: https://github.com/ggdatascience/rapportage_monitor_gmj/blob/main/Rapportage.R)
