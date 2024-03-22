@@ -38,12 +38,6 @@ data <- read_spss('data.sav')
 # op te geven (inclusief de bestandsextensie)
 padnaam_configuratie <- '1. Configuratie - Gemeente.xlsx'
 
-# Inladen van alle tabbladen van de Excel configuratie
-configuratie <- padnaam_configuratie %>% 
-  excel_sheets() %>% 
-  set_names() %>% 
-  map(read_excel, path = padnaam_configuratie)
-
 
 # 3. Grafiekinstellingen en opmaak ----------------------------------------
 
