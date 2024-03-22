@@ -335,7 +335,14 @@ rapportage_maken <- function(data, configuratie, rapportnaam, template, slidecon
   
   
   template <- read_pptx(template)
+
+  if('indeling' %in% names(configuratie[[slideconfiguratie]]) == T) {
   
+    walk(.x = configuratie[[slideconfiguratie]] %>% select(indeling, slidenummer) %>% unique() %>% pull(indeling), 
+         .f = add_slide, x = template, master = 'Figurenboek')
+    
+  }
+
   rapportconfiguratie <- data.frame(niveau_indicator = niveau_indicator,
                                     niveau_waarde = niveau_waarde,
                                     niveau_naam = niveau_naam,
