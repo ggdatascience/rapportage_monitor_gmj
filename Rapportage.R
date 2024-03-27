@@ -231,7 +231,8 @@ type_tabel <- function(cijfers) {
     font(fontname = 'Century Gothic', part = "all") %>%
     align(align = "center", part = "all") %>%
     bg(bg = '#e8525f', part = 'header') %>%
-    bg(bg = '#009898', part = 'body') %>% 
+    bg(bg = '#009898', part = 'body') %>%
+    {if('TOTAAL' %in% cijfers$indicator) bg(., i = nrow(tabel), bg = '#e8525f', part = 'body') else .} %>%
     color(color = "white", part = "all") %>%
     border_outer(part="all", border = fp_border_default(width = 2, color = "white") ) %>%
     border_inner_h(border = fp_border_default(width = 2, color = "white"), part="all") %>%
