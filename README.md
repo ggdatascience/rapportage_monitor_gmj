@@ -1,7 +1,22 @@
 # Wijzigingen in Rapportage.R
+## 27 maart 2024
+
+Optie toegevoegd om een totaalrij toe te voegen aan de responstabel. Hiervoor moet je een indicator toevoegen aan je databestand met de naam TOTAAL die voor iedereen dezelfde waarde heeft (bijvoorbeeld 'Totaal').
+
+```
+data <- data %>% mutate(TOTAAL = 'Totaal')
+```
+Deze indicator (TOTAAL) voeg je in de regel van de responstabel toe aan de kolom _indicator_ van de slideconfiguratie. Zorg dat deze variabele achteraan staat, dan komt het totaal op de onderste regel van de responstabel.
+
+| type | indicator |
+| --------| -------- |
+| tabel | KLAS; MBOKA3S31; GENDER; **TOTAAL**  |
+<br />
+
+
 ## 22 maart 2024
 
-In de meest recente update van het script is de mogelijkheid om te wegen toegevoegd. Het is ook mogelijk om met dit nieuwe script ongewogen cijfers te berekenen. Om te bepalen of en hoe er moet worden gewogen zijn aanpassingen gedaan aan de configuratie. Hieronder staan de aanpassingen weergegeven.
+In deze update van het script is de mogelijkheid om te wegen toegevoegd. Het is ook mogelijk om met dit nieuwe script ongewogen cijfers te berekenen. Om te bepalen of en hoe er moet worden gewogen zijn aanpassingen gedaan aan de configuratie. Hieronder staan de aanpassingen weergegeven.
 <br />
 
 * **Drie opties voor weging toegevoegd aan het script**
